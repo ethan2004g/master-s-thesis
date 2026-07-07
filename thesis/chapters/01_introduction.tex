@@ -1,0 +1,94 @@
+\chapter{Introduction}
+\label{ch:introduction}
+
+\section{Motivation}
+
+Many decision problems in security, negotiation, finance, and multi-agent
+interaction share three properties that standard fully observed reinforcement
+learning benchmarks underrepresent.
+
+\textbf{Partial observability.} Important state variables remain hidden until
+late in an interaction. An agent must infer latent structure from noisy clues
+rather than read full state directly.
+
+\textbf{Simultaneous action selection.} Both sides commit to actions before the
+environment resolves the step. This differs from chess-like turn-taking and
+creates a distinct learning problem around anticipating opponent intent under
+uncertainty.
+
+\textbf{Combinatorial structure.} The space of valid configurations grows
+quickly. A model that memorizes frequent patterns may appear strong on average
+yet fail on rare but valid combinations held out from training.
+
+Transformers are a natural fit for these settings because they aggregate evidence
+across long interaction histories with causal attention. Offline learning is
+appropriate when high-quality human trajectories are available at scale and the
+deployment goal is a single forward pass without lookahead search or simulator
+queries at inference time.
+
+\section{Problem Statement}
+
+Given a sequence of first-person observations from past turns, we seek a
+model that
+\begin{enumerate}[label=(\roman*)]
+  \item maintains a useful belief over hidden opponent attributes,
+  \item uses that belief to choose strong actions in new interactions, and
+  \item generalizes to opponent configurations outside the training distribution.
+\end{enumerate}
+
+Formally, each turn produces an observation $o_t$ derived from public state.
+Hidden variables $z_t$ include unrevealed species, moves, items, abilities, and
+other private attributes. Actions $a_t$ are chosen under simultaneous-move
+constraints. The model receives offline trajectories
+$\{(o_{1:T}, a_{1:T}, z_{1:T})\}$ reconstructed from full logs where $z$ is
+known post hoc but not visible to the agent at decision time.
+
+The central thesis question is whether explicit belief supervision and
+transformer-based history modeling improve both belief accuracy and policy
+performance under combinatorial distribution shift.
+
+\section{Research Questions}
+
+\begin{description}
+  \item[RQ1 (Belief inference)] Can a causal transformer predict hidden opponent
+    attributes more accurately than classical and neural baselines?
+  \item[RQ2 (Belief usefulness)] Does improved belief accuracy translate into
+    better action selection under behavioral cloning and offline policy metrics?
+  \item[RQ3 (Combinatorial generalization)] Under held-out team and set splits,
+    do belief-augmented policies degrade more gracefully than action-only models?
+  \item[RQ4 (Architecture)] How much gain comes from within-turn structure,
+    cross-turn causal attention, and auxiliary belief heads versus flat sequence
+    baselines?
+\end{description}
+
+\section{Contributions}
+
+This thesis makes four contributions.
+\begin{enumerate}
+  \item A structured tokenization and belief supervision framework for
+    partially observed simultaneous-action games.
+  \item Empirical evidence on whether transformer history models learn
+    calibratable beliefs over hidden opponent attributes from offline human play.
+  \item A combinatorial generalization benchmark protocol with team-key and
+    set-combination held-out splits tied to belief and policy metrics.
+  \item An open-source implementation built on Metamon, poke-env, and Gymnasium
+    compatible tooling.
+\end{enumerate}
+
+\section{Evaluation Domain}
+
+We evaluate on competitive Pok\'emon battles reconstructed from human spectator
+replays via the Metamon dataset \citep{grigsby2023metamon,grigsby2025metamon}.
+Pok\'emon is used only as a benchmark. It combines partial observability,
+simultaneous move commitment, and combinatorial team structure in one domain
+with large-scale offline data. The methods apply to any domain with similar
+structure.
+
+\section{Thesis Organization}
+
+\Cref{ch:background} reviews POMDPs, transformers in decision making, and
+offline RL. \Cref{ch:benchmark} briefly describes the benchmark environment.
+\Cref{ch:representation,ch:model} present tokenization and the belief
+transformer. \Cref{ch:experiments,ch:results,ch:analysis} cover the experiment
+plan, results, and interpretability analysis. \Cref{ch:limitations,ch:conclusion}
+discuss limitations and future work.

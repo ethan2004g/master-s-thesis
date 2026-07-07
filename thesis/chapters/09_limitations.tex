@@ -1,0 +1,52 @@
+\chapter{Limitations and Future Work}
+\label{ch:limitations}
+
+\section{Domain Specificity}
+
+Results are measured on competitive Pok\'emon. Transfer to other partially
+observed simultaneous-action domains requires re-tokenization and new belief
+target definitions. The methods are domain-agnostic but empirical claims are
+benchmark-specific.
+
+\section{Label and Reconstruction Noise}
+
+Metamon first-person reconstruction may contain errors on edge-case mechanics.
+We mitigate with manual spot checks, corrupted-battle filtering, and comparison
+of random-bot versus human statistics.
+
+\section{Belief Labels After Reveal}
+
+Belief metrics focus on pre-reveal turns with masked slots. Including post-reveal
+slots would inflate accuracy trivially.
+
+\section{Compute and Model Scale}
+
+We intentionally use modest model size for Master's-scale hardware. Scaling
+width, depth, and context length may narrow gaps to large black-box sequence
+policies \citep{grigsby2025metamon} but is left for future work.
+
+\section{Offline RL Stability}
+
+CQL and AMAGO fine-tuning can be unstable on sparse or noisy data. Stage B is
+optional for thesis completion. Strong Stage A belief and BC results suffice
+for the minimum viable bar.
+
+\section{Gen~9 Team Preview}
+
+In Gen~9 OU, all opponent species are visible after team preview. Species-based
+belief and Split~B keyed only by species composition may understate harder
+combinatorial shift involving unrevealed items, abilities, and move sets.
+Split~C and active-opponent belief labels partially address this gap; full set-
+combination held-out evaluation remains open (\Cref{ch:results}).
+
+\section{Future Directions}
+
+\begin{itemize}
+  \item Self-confirming belief tokens inspired by \citet{zhang2024sct} for
+    opponent intent before move reveal.
+  \item Variational belief modules with amortized inference over team identity.
+  \item Cross-format evaluation (other generations or tiers) for broader
+    generalization claims.
+  \item Release of combinatorial split manifests as a standalone benchmark
+    contribution.
+\end{itemize}

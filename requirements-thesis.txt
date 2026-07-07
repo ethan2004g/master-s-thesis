@@ -1,0 +1,3 @@
+# Thesis pipeline (poke-env baseline, BC training, continuous_train)
+poke-env==0.15.0
+torch>=2.0.0

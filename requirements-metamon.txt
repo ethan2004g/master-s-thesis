@@ -1,0 +1,3 @@
+# Metamon offline RL stack (install in a separate venv)
+# pip install -r requirements-metamon.txt
+-e pokemon-thesis-tools/metamon

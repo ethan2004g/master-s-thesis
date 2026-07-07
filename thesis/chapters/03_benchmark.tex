@@ -1,0 +1,55 @@
+\chapter{Benchmark Environment}
+\label{ch:benchmark}
+
+\section{Why Competitive Pok\'emon}
+
+Competitive Pok\'emon Singles (CPS) is a turn-based strategy game with
+simultaneous move selection each turn. Players choose teams of six Pok\'emon
+with moves, items, abilities, and in Generation 9 a terastallization type. At
+battle start much of the opponent roster is hidden. Species, sets, and intent
+must be inferred from damage ranges, switch patterns, item triggers, and move
+reveals.
+
+CPS therefore combines partial observability, simultaneous commitment, long
+horizons (often 20--100+ turns), and combinatorial team structure. Human replay
+data spans more than a decade and grows daily on public ladders.
+
+\section{Infrastructure}
+
+We use three open components.
+\begin{itemize}
+  \item \textbf{poke-env} bridges Python agents to a local Pokemon Showdown
+    server for live evaluation.
+  \item \textbf{Metamon} reconstructs first-person trajectories from spectator
+    replays with full-state annotations for belief labels \citep{grigsby2023metamon}.
+  \item \textbf{Gymnasium} provides the environment interface standard for RL
+    tooling in this project.
+\end{itemize}
+
+\section{Scope of This Chapter}
+
+This thesis is not about Pok\'emon mechanics, tier lists, or heuristic engines.
+We use Gen 9 OU human battles as the primary corpus. Random-bot logs from
+poke-env support pipeline debugging only. All scientific claims concern belief
+inference and generalization, with CPS as an empirical testbed.
+
+\section{Action Space}
+
+At each decision point the agent may use a move targeting an opponent slot or
+switch to a bench Pok\'emon. Actions are encoded as discrete classes in an
+action vocabulary built from training data. The exact action cardinality depends
+on format rules and logged move names.
+
+\section{Data Pipeline Status}
+
+The implementation roadmap proceeds in phases.
+\begin{enumerate}
+  \item Local Showdown server and baseline logging \textbf{(complete)}.
+  \item 13-token turn encoder and vocabulary \textbf{(complete)}.
+  \item TurnTransformer behavioral cloning \textbf{(complete)}.
+  \item Metamon download and bridge to token format \textbf{(in progress)}.
+  \item Belief label extraction and multi-task training \textbf{(in progress)}.
+  \item Combinatorial split tooling and evaluation harness \textbf{(planned)}.
+\end{enumerate}
+
+\Cref{app:implementation} lists repository paths for each component.

@@ -1,0 +1,112 @@
+\chapter{Experimental Setup}
+\label{ch:experiments}
+
+\section{Dataset}
+
+The primary corpus is Metamon Gen 9 OU human replays. The scale target is at
+least fifty thousand battles after filtering corrupted or extremely short games.
+Observations use first-person reconstructed from spectator logs. Actions come
+from human moves. Belief labels come from full-state opponent annotations.
+
+Random-bot logs from poke-env support pipeline validation before human data is
+available at full scale.
+
+\section{Data Splits}
+
+We report three complementary split strategies.
+
+\subsection{Split A: Random Battle Split}
+
+Standard 80/10/10 train, validation, and test partition by battle ID. This
+measures in-distribution imitation and belief accuracy.
+
+\subsection{Split B: Held-Out Team Cores}
+
+Each opponent team receives a canonical key from sorted species names. Teams in
+a designated held-out set never appear in training. Test battles use opponents
+whose team key was unseen during training.
+
+\subsection{Split C: Held-Out Set Combinations}
+
+We hold out specific tuples of species, item, ability, and move quartet. This
+tests fine-grained combinatorial generalization beyond species identity alone.
+
+\subsection{Split D: Temporal Split (Optional)}
+
+When metadata permits, train on an earlier ladder period and test on a later
+period to measure temporal drift.
+
+\section{Belief Metrics}
+
+For each hidden-attribute type and model we report
+\begin{itemize}
+  \item top-1 accuracy on masked unrevealed slots,
+  \item top-3 accuracy where label space is large,
+  \item expected calibration error (ECE),
+  \item Brier score for multi-class predictions,
+  \item reveal-turn anticipation (turns before official reveal when top-1 becomes
+    correct).
+\end{itemize}
+
+We plot belief accuracy versus turn number to show uncertainty narrowing over
+time.
+
+\section{Policy Metrics}
+
+Policy evaluation uses
+\begin{itemize}
+  \item BC cross-entropy and top-1 action match versus human actions,
+  \item offline policy value estimates when Q-learning is used,
+  \item live win rate on poke-env against fixed opponents,
+  \item generalization gap (in-distribution metric minus out-of-distribution
+    metric).
+\end{itemize}
+
+The generalization gap is the primary summary statistic for RQ3.
+
+\section{Ablations}
+
+\begin{table}[ht]
+  \centering
+  \caption{Planned ablation studies.}
+  \label{tab:ablations}
+  \begin{tabular}{ll}
+    \toprule
+    Ablation & What it tests \\
+    \midrule
+    Context $N \in \{4,8,16,32\}$ & History length for belief \\
+    Remove within-turn attention & Value of 13-token structure \\
+    Bidirectional turn encoder & Future leakage effects \\
+    $\lambda_\mathrm{bel} = 0$ vs tuned & Necessity of belief loss \\
+    Belief fusion vs shared trunk & Explicit belief features \\
+    CQL vs AMAGO vs BC-only & Offline RL contribution \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\section{Statistical Reporting}
+
+We report mean $\pm$ 95\% bootstrap confidence intervals over battles. Paired
+comparisons use the same test battles for each model. Win-rate significance
+uses paired bootstrap or McNemar tests where appropriate.
+
+\section{Minimum Viable Result}
+
+The thesis meets its pass bar if at least two of the following hold on
+combinatorial splits.
+\begin{enumerate}
+  \item Belief-augmented TurnTransformer beats classical and recurrent belief
+    baselines on aggregate hidden-species prediction.
+  \item Belief-augmented BC beats BC-only TurnTransformer on OOD team metrics
+    with a smaller generalization gap.
+  \item Offline RL fine-tuning improves live win rate over BC-only without
+    search at inference.
+  \item Ablations confirm causal history modeling contributes beyond flat
+    sequence baselines.
+\end{enumerate}
+
+\section{Compute and Reproducibility}
+
+Training runs on a single GPU when available with CPU fallback. Checkpoints,
+vocabularies, and split manifests are saved under \texttt{checkpoints/} and
+\texttt{logs/}. The thesis PDF is built from \texttt{thesis/main.tex}.

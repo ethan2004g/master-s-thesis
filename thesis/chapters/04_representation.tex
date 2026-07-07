@@ -1,0 +1,89 @@
+\chapter{Representation and Belief Targets}
+\label{ch:representation}
+
+\section{Design Goals}
+
+The observation representation must satisfy four constraints.
+\begin{enumerate}
+  \item Fixed structure each turn so batching and attention masks are simple.
+  \item Explicit separation of field state, player party, and opponent party.
+  \item Compatibility with first-person partial observations from Metamon.
+  \item Discrete tokens suitable for embedding lookup and vocabulary growth.
+\end{enumerate}
+
+\section{Thirteen-Token Turn Layout}
+
+Each turn is encoded as exactly thirteen discrete tokens.
+
+\begin{table}[ht]
+  \centering
+  \caption{Turn token layout. Indices are zero-based.}
+  \label{tab:token-layout}
+  \begin{tabular}{cl}
+    \toprule
+    Index & Role \\
+    \midrule
+    0 & Field (weather, terrain, hazards on both sides) \\
+    1--6 & Player party slots (padded to six) \\
+    7--12 & Opponent party slots (partial info when unrevealed) \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+The field token concatenates sorted effect keys for weather, terrain, and side
+conditions. Each party token encodes species, discretized HP bucket, status,
+active flag, and fainted flag. Unfilled slots use a padding token.
+
+A battle is a sequence of turns. Training samples use a causal context window of
+$N$ prior turns plus the current turn. Left padding aligns the most recent turn
+to the final sequence position.
+
+\section{History Window}
+
+Given turn frames $x_1, \ldots, x_t$, we form context
+\[
+  C_t = \mathrm{pad}\bigl(x_{t-N+1}, \ldots, x_t\bigr)
+\]
+with a binary turn mask marking valid versus padded positions. The model may
+not attend to future turns. This implements a finite-history approximation to
+belief updating in a POMDP.
+
+\section{Belief Supervision Targets}
+
+Belief heads predict hidden opponent attributes knowable from full logs but not
+from the first-person view at time $t$. Primary targets in priority order are
+\begin{enumerate}
+  \item species identity for each unrevealed opponent slot,
+  \item moves for revealed or partially revealed opponent Pok\'emon,
+  \item held item when inferable before reveal,
+  \item ability when not yet shown,
+  \item terastallization type in Gen 9 OU.
+\end{enumerate}
+
+Each target is a multi-class prediction per opponent slot. Revealed or empty
+slots are masked out of the loss. Labels are extracted from Metamon full-state
+annotations at each turn boundary.
+
+For species belief we define a vocabulary over base species names. Slot $s
+\in \{0,\ldots,5\}$ maps to opponent token index $7+s$ and receives a label
+$y_{t,s} \in \mathcal{Y}_\mathrm{species} \cup \{\emptyset\}$ where $\emptyset$
+denotes masked slots.
+
+\section{Combinatorial Keys for Evaluation}
+
+We define two keys for distribution shift experiments.
+\begin{description}
+  \item[Team key] Sorted tuple of six species names for the opponent roster.
+  \item[Set key] Tuple of species, item, ability, and move quartet for a slot.
+\end{description}
+
+Held-out keys define test battles where the opponent configuration never
+appeared in training. This tests compositional generalization beyond random
+battle splits.
+
+\section{Implementation}
+
+The \texttt{TurnTokenizer} class in \texttt{src/pokemon\_thesis/tokenizer/}
+implements encoding from JSON battle records. Encoded trajectories are stored as
+JSONL with \texttt{token\_ids}, \texttt{action}, and optional \texttt{belief}
+fields for multi-task training.

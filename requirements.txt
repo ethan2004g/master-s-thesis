@@ -1,0 +1,3 @@
+# Use requirements-thesis.txt for the main pipeline
+# Use requirements-metamon.txt in .venv-metamon for Metamon
+-r requirements-thesis.txt

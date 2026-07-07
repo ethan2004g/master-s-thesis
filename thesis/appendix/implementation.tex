@@ -1,0 +1,66 @@
+\chapter{Implementation Reference}
+\label{app:implementation}
+
+\section{Repository Layout}
+
+\begin{table}[ht]
+  \centering
+  \caption{Key paths in the thesis codebase.}
+  \begin{tabular}{ll}
+    \toprule
+    Path & Purpose \\
+    \midrule
+    \texttt{src/pokemon\_thesis/tokenizer/} & 13-token encoding \\
+    \texttt{src/pokemon\_thesis/model/} & TurnTransformer, BeliefTransformer \\
+    \texttt{src/pokemon\_thesis/data/} & Datasets and combinatorial splits \\
+    \texttt{src/pokemon\_thesis/metamon\_bridge/} & Metamon state conversion \\
+    \texttt{scripts/train\_bc.py} & Behavioral cloning training \\
+    \texttt{scripts/train\_belief\_bc.py} & Multi-task belief + action training \\
+    \texttt{thesis/main.tex} & This document \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\section{Building the PDF}
+
+From the repository root on Windows PowerShell:
+
+\begin{verbatim}
+cd thesis
+pdflatex main.tex
+bibtex main
+pdflatex main.tex
+pdflatex main.tex
+\end{verbatim}
+
+Or run \texttt{scripts/compile\_thesis.ps1} which executes the same sequence.
+
+\section{Training Commands}
+
+Encode baseline logs:
+
+\begin{verbatim}
+python scripts/encode_logs.py logs/baseline_*.jsonl
+\end{verbatim}
+
+Train BC TurnTransformer:
+
+\begin{verbatim}
+python scripts/train_bc.py logs/encoded_*.jsonl --epochs 30
+\end{verbatim}
+
+Train belief-augmented model when encoded records include belief labels:
+
+\begin{verbatim}
+python scripts/train_belief_bc.py logs/encoded_*.jsonl --epochs 30
+\end{verbatim}
+
+\section{TurnTransformer Forward Pass}
+
+Given token IDs \texttt{token\_ids} of shape $(B, T, 13)$ and turn mask
+\texttt{turn\_mask} of shape $(B, T)$, the model applies slot self-attention
+per turn, causal turn attention across history, and linear action logits over
+the final valid turn embedding.
+
+BeliefTransformer adds per-slot species heads and optional fusion into the
+policy input when enabled.

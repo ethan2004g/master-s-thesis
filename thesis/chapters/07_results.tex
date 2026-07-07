@@ -1,0 +1,231 @@
+\chapter{Results}
+\label{ch:results}
+
+\section{Overview}
+
+This chapter reports behavioral cloning and combinatorial generalization results
+on Metamon Gen~9 OU human replays. Phase~1 established a turn-only
+\texttt{TurnTransformer} baseline on a large encoded subset. Phase~2 exported a
+belief-enriched corpus, trained three ablations on the same vocabulary, and
+evaluated them under random battle holdout (Split~A) and held-out opponent team
+keys (Split~B). All Phase~2 models use an eight-turn context window,
+$d=128$, and twenty training epochs unless noted otherwise.
+
+Corpus statistics for the scaled belief export are
+69\,411 turns from 2\,000 battles, with 59\,254 supervised move slots and
+thousands of item, ability, and terastallization labels on the active opponent.
+Gen~9 OU team preview reveals all opponent species at battle start, so species
+belief supervision is empty by design. Active-opponent move, item, ability, and
+tera type are the primary belief targets.
+
+\section{Phase 1 Baseline (Full Subset)}
+
+The turn-only \texttt{TurnTransformer} was trained on
+\texttt{logs/encoded\_metamon\_subset.jsonl} (approximately 255\,000 turns).
+On a random 20\% validation split this model reached
+\textbf{18.4\%} top-1 action match rate across 988 action classes
+(checkpoint \texttt{checkpoints/human\_bc/bc\_best.pt}).
+This exceeds the chance rate and confirms that the tokenization pipeline and
+hierarchical encoder learn non-trivial structure from human trajectories alone.
+
+\section{Policy Quality (RQ2)}
+
+\subsection{Random Battle Holdout (Split~A)}
+
+\Cref{tab:policy-val} reports validation action accuracy on the belief corpus
+after training on 80\% of battles. All three Phase~2 models share the same
+encoded file and token vocabulary.
+
+\begin{table}[ht]
+  \centering
+  \caption{Top-1 action match on random validation battles (Split~A),
+    belief corpus, 2\,000 battles, 20 epochs.}
+  \label{tab:policy-val}
+  \begin{tabular}{lcc}
+    \toprule
+    Model & Action classes & Val.\ accuracy \\
+    \midrule
+    TurnTransformer BC (\texttt{human\_bc\_belief}) & 425 & 20.4\% \\
+    Matchup BC (\texttt{matchup\_bc}) & 425 & 20.5\% \\
+    ActiveBelief (\texttt{active\_belief}) & 425 & 20.2\% \\
+    ActiveBelief + fusion & 425 & 19.6\% \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Turn history alone remains the strongest signal for action prediction at this
+scale. Explicit team matchup conditioning and auxiliary belief losses did not
+improve random-holdout action accuracy relative to the turn-only baseline.
+The best checkpoint for \texttt{active\_belief} reached 20.2\% validation
+action accuracy while simultaneously training move, item, ability, and tera
+heads.
+
+\subsection{Live Evaluation}
+
+Live win-rate experiments on \texttt{poke-env} against \texttt{RandomPlayer} and
+frozen BC opponents are planned but not yet included in this draft.
+\todo{Insert live battle win rates from \texttt{scripts/run\_bc\_match.py}.}
+
+\section{Belief Inference (RQ1)}
+
+\subsection{Active-Opponent Move Belief}
+
+The \texttt{ActiveBeliefTransformer} predicts four move slots plus item, ability,
+and tera type for the currently active opponent. \Cref{tab:belief-move} summarizes
+move-slot top-1 accuracy on the validation split.
+
+\begin{table}[ht]
+  \centering
+  \caption{Move-slot belief accuracy on the validation split (2\,000-battle corpus).}
+  \label{tab:belief-move}
+  \begin{tabular}{llc}
+    \toprule
+    Model & History & Val.\ move belief \\
+    \midrule
+    Linear probe (frozen BC trunk) & 8 turns & 10.5\% \\
+    GRU baseline & 8 turns & 17.2\% \\
+    ActiveBelief transformer & 8 turns & 28.1\% \\
+  \textbf{MLP baseline} & latest turn only & \textbf{35.5\%} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Scaling the export from 500 to 2\,000 battles raised \texttt{active\_belief} move
+belief from 15.5\% to 28.1\%. Classical baselines on the same labels show that a
+latest-turn MLP \emph{outperforms} the transformer (35.5\% versus 28.1\%), while a
+GRU over eight turns reaches only 17.2\%. Linear probes on the frozen BC trunk
+remain at 10.5\% (\Cref{tab:trunk-probe}). Much move information is therefore
+readable directly from the current turn tokens; deep causal history provides
+diminishing returns for this target at current scale.
+
+\subsection{Species and Set-Combination Beliefs}
+
+Species belief labels are unavailable in Gen~9 OU because team preview exposes
+all six opponent species before turn one. Split~C (held-out item, ability, and
+move-set tuples) and calibration metrics (ECE, Brier score) are deferred to a
+later revision.
+\todo{Report item, ability, and tera belief accuracy and Split~C results.}
+
+\section{Combinatorial Generalization (RQ3)}
+
+\subsection{Held-Out Opponent Teams (Split~B)}
+
+Each opponent team is keyed by sorted species names. Training battles cover
+1\,615 team keys. Evaluation compares turns from battles whose opponent team
+appeared in training (\emph{ID train teams}) against turns from 385 held-out
+team keys never seen during training (\emph{OOD teams}). The generalization gap
+is ID train team accuracy minus OOD team accuracy.
+
+\Cref{tab:ood-teams} shows results at pilot (500 battles) and scaled
+(2\,000 battles) corpus sizes.
+
+\begin{table}[ht]
+  \centering
+  \caption{Action match under held-out opponent team keys (Split~B).}
+  \label{tab:ood-teams}
+  \begin{tabular}{lcccc}
+    \toprule
+    Model & Scale & ID train & OOD teams & Gap \\
+    \midrule
+    TurnTransformer BC & 500 & 43.3\% & 41.4\% & 1.9\% \\
+    Matchup BC & 500 & 31.1\% & 29.3\% & 1.8\% \\
+    \addlinespace
+    TurnTransformer BC & 2\,000 & 45.2\% & 45.1\% & 0.05\% \\
+    Matchup BC & 2\,000 & 42.6\% & 42.1\% & 0.4\% \\
+    ActiveBelief & 2\,000 & 44.3\% & 44.4\% & $-$0.03\% \\
+    ActiveBelief + fusion & 2\,000 & 43.8\% & 43.3\% & 0.5\% \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+On the pilot corpus, all models showed a one to two point gap between ID and OOD
+team splits. After scaling to 2\,000 battles, the gap collapsed to near zero for
+every architecture. Turn-only BC retained the highest absolute OOD accuracy
+(45.1\%). Matchup conditioning did not close the gap further and scored lower in
+absolute terms. ActiveBelief matched turn-only OOD performance despite multi-task
+belief training.
+
+Random Split~A accuracy ($\approx$20\%) is much lower than Split~B team-conditioned
+accuracy ($\approx$42--45\%) because the splits measure different quantities.
+Split~A holds out entire battle trajectories. Split~B evaluates action match on
+turns grouped by whether the opponent roster was seen during training, which
+partially aligns train and test action distributions when species composition is
+the primary shift variable.
+
+\section{Architecture Ablations (RQ4)}
+
+Phase~2 implements three incremental ablations on a shared trunk.
+\begin{itemize}
+  \item \textbf{TurnTransformer BC} uses only turn-history tokens.
+  \item \textbf{Matchup BC} adds a \texttt{TeamMatchupEncoder} over both teams'
+    six species and fuses the result into the final turn embedding before the
+    action head.
+  \item \textbf{ActiveBelief} extends Matchup BC with move, item, ability, and
+    tera prediction heads trained with masked cross-entropy.
+\end{itemize}
+
+At 2\,000 battles, matchup and belief modules did not outperform turn-only BC on
+either Split~A or Split~B. This suggests that, at current data and model scale,
+the thirteen-token turn representation already encodes most team and belief
+information useful for action matching. Explicit structure helps move inference
+(RQ1) more than policy metrics (RQ2).
+
+\subsection{Belief Fusion}
+
+We tested concatenating belief softmax outputs (four move slots, item, ability,
+tera) to the policy head input (\Cref{ch:model}). After twenty epochs,
+\texttt{active\_belief\_fusion} reached \textbf{19.6\%} Split~A validation action
+match and \textbf{27.6\%} move belief, versus 20.2\% and 28.1\% for parallel
+heads without fusion. OOD team accuracy was 43.3\% (fusion) versus 44.4\%
+(without fusion). Feeding explicit belief probabilities into the action head did
+not improve imitation at this scale.
+
+Flat $13T$ token transformers and context-window sweeps remain future work.
+\todo{Report flat-sequence and context-window ablations.}
+
+\section{Stage B Offline RL}
+
+Conservative offline RL fine-tuning (CQL or AMAGO) initialized from belief-
+augmented BC has not been run.
+\todo{Insert Stage~B offline RL results if pursued.}
+
+\section{Summary}
+
+\Cref{tab:results-summary} consolidates the scaled Phase~2 numbers. Belief
+accuracy refers to move-slot top-1 prediction for \texttt{active\_belief} only.
+OOD action match is Split~B OOD team accuracy.
+
+\begin{table}[ht]
+  \centering
+  \caption{Results summary on the 2\,000-battle belief corpus (20 epochs).}
+  \label{tab:results-summary}
+  \begin{tabular}{lccc}
+    \toprule
+    Model & Move belief (val) & OOD action match & Gen.\ gap \\
+    \midrule
+    TurnTransformer BC & --- & 45.1\% & 0.05\% \\
+    Matchup BC & --- & 42.1\% & 0.4\% \\
+    ActiveBelief & 28.1\% & 44.4\% & $-$0.03\% \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsection{Relation to Hypotheses}
+
+\textbf{H1 (belief inference).} Mixed. The transformer learns non-trivial move
+beliefs and beats the GRU baseline (28.1\% versus 17.2\%), but a latest-turn MLP
+reaches 35.5\% on the same split. History-conditioned attention is not required
+for strong move prediction when current-turn tokens already expose most clues.
+
+\textbf{H2 (belief usefulness).} Not supported at current scale. Auxiliary
+belief loss did not improve action match over turn-only BC on either split.
+
+\textbf{H3 (combinatorial generalization).} Mixed. Scaling data removed the OOD
+team gap for all models. Belief and matchup modules did not produce a smaller
+gap than the baseline.
+
+\textbf{H4 (offline RL).} Not yet tested.
+
+Reproducibility artifacts are stored under \texttt{checkpoints/} and
+\texttt{logs/ood\_comparison.json}. The one-command replication script is
+\texttt{scripts/scale\_belief\_research.py}.

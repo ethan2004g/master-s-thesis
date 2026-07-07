@@ -1,0 +1,70 @@
+\chapter{Background}
+\label{ch:background}
+
+\section{Partially Observable Decision Making}
+
+A partially observable Markov decision process (POMDP) extends the MDP
+formalism with a latent state $s_t$ that is not fully observed
+\citep{kaelbling1998planning}. The agent receives observations $o_t$ and must
+maintain a belief $b_t(s) = P(s_t = s \mid o_{1:t}, a_{1:t-1})$ over latent
+state. Optimal control in POMDPs requires planning over belief space, which is
+often intractable in large discrete domains.
+
+Recent work amortizes belief inference with neural sequence models that map
+interaction history to action distributions or latent embeddings
+\citep{chen2021decision,liu2024tao}. This thesis asks whether
+structured auxiliary supervision over interpretable hidden attributes improves
+both belief quality and downstream policy robustness.
+
+\section{Simultaneous-Action Games}
+
+In simultaneous-move settings both agents select actions before the environment
+advances. The effective decision problem is a partially observed stochastic game.
+Unlike turn-based games, the agent cannot observe the opponent's current action
+before committing. Policies must therefore encode predictions about opponent
+intent from history alone.
+
+\section{Transformers for Sequential Decision Making}
+
+The transformer architecture uses self-attention to relate tokens within a
+sequence \citep{vaswani2017attention}. Decision Transformer and related methods apply causal transformers to offline RL by modeling return-conditioned action
+sequences \citep{chen2021decision}. In competitive settings, opponent modeling
+methods such as TAO embed opponent trajectories for in-context adaptation
+\citep{liu2024tao}. The Self-Confirming Transformer generates fictitious belief
+tokens representing inferred opponent actions and feeds them back into policy
+decoding \citep{zhang2024sct}.
+
+Our approach differs in three ways. We predict structured hidden attributes per
+opponent slot rather than only next-opponent-action embeddings. We use a
+hierarchical within-turn and cross-turn encoder rather than a flat token
+stream. We evaluate combinatorial held-out team and set splits as a primary
+metric rather than leaderboard rank alone.
+
+\section{Offline Reinforcement Learning}
+
+Offline RL learns from a fixed dataset without online environment interaction
+\citep{sutton2018reinforcement}. Behavioral cloning (BC) imitates expert actions
+and provides a stable initialization but suffers from covariate shift.
+Conservative Q-Learning (CQL) penalizes overestimation on out-of-distribution
+actions \citep{kumar2020conservative}. AMAGO provides another sequence-model
+fine-tuning path compatible with transformer backbones.
+
+We use BC with auxiliary belief losses as Stage A and optional CQL or AMAGO
+fine-tuning as Stage B. Inference remains a single forward pass with no search.
+
+\section{Combinatorial Generalization}
+
+Humans generalize to novel combinations of known primitives
+\citep{lake2018building}. Machine learning systems often fail when test
+combinations were absent from training even when individual primitives were
+seen. We adopt held-out team keys and held-out move-set tuples as explicit
+tests of combinatorial generalization rather than random battle splits alone.
+
+\section{Positioning Relative to Metamon}
+
+\citet{grigsby2025metamon} demonstrated that large sequence models trained on
+human Pok\'emon replays can reach strong play without search. That work
+establishes feasibility of transformer policies in this domain. Our thesis does
+not aim to beat their agents on ladder rank. Instead we study explicit belief
+inference, calibration, and OOD degradation under combinatorial splits, which
+their paper does not center.

@@ -1,0 +1,168 @@
+\chapter{Analysis and Interpretability}
+\label{ch:analysis}
+
+\section{Overview}
+
+This chapter interprets the Phase~1 and Phase~2 results reported in
+\Cref{ch:results}. The analysis focuses on three patterns that emerged from
+scaled experiments on Metamon Gen~9 OU human replays
+\begin{enumerate}
+  \item move-belief accuracy improves with data scale while policy metrics plateau
+    across architectures,
+  \item opponent-team generalization gaps shrink with corpus size for every
+    model, and
+  \item turn-only behavioral cloning matches or exceeds matchup- and
+    belief-augmented variants on action prediction.
+\end{enumerate}
+
+\section{Scaling Belief Versus Scaling Policy}
+
+The \texttt{ActiveBeliefTransformer} increased validation move-slot accuracy from
+15.5\% on a 500-battle pilot export to 28.1\% on a 2\,000-battle export, while
+validation action accuracy rose from 8.5\% to 20.2\% over the same period. The
+belief head therefore benefits directly from additional labeled trajectories.
+
+Action accuracy for all three Phase~2 models converged near 20\% on random battle
+holdout (Split~A) after scaling, with turn-only BC slightly ahead. Auxiliary
+belief losses add parameters and optimization pressure but did not produce a
+policy advantage at $d=128$ and twenty epochs. Two explanations are consistent
+with the data.
+
+\textbf{Shared trunk sufficiency.} The hierarchical turn encoder may already
+compress history into an embedding useful for both action and hidden-set
+prediction. Explicit belief heads learn to \emph{decode} that embedding for
+supervised targets without changing the trunk enough to improve actions.
+
+\textbf{Task interference.} Multi-task training divides gradient signal among
+move, item, ability, and tera heads. If $\lambda_\mathrm{bel}$ is not carefully
+tuned, belief terms may slow action learning without improving generalization.
+Future work should sweep $\lambda_\mathrm{bel}$ and try belief fusion into the
+policy input (\Cref{ch:model}) rather than parallel heads only.
+
+\section{Why the Team Generalization Gap Collapsed}
+
+On the 500-battle corpus, Split~B showed a 1.8--1.9 point gap between ID train
+teams and OOD teams. At 2\,000 battles the gap fell below half a point for every
+architecture, including turn-only BC.
+
+This pattern suggests that the pilot gap was driven largely by \emph{data
+coverage} rather than architectural failure. With only 500 battles, many
+held-out team keys had few or no nearby examples in embedding space. Expanding
+to 2\,000 battles increased overlap in species co-occurrence patterns and move
+distributions, so OOD team turns became easier to match even without explicit
+matchup modules.
+
+Matchup BC did not outperform turn-only BC on Split~B at scale. The
+\texttt{TeamMatchupEncoder} pools six species embeddings per side and adds them
+to the final turn vector. Much of that information is already present in the
+opponent party tokens within each turn's thirteen-token block. The explicit
+module may therefore be redundant given current tokenization.
+
+Split~B accuracy ($\approx$42--45\%) exceeds Split~A accuracy ($\approx$20\%)
+because the metrics condition on different splits. Split~A withholds entire
+battles. Split~B groups turns by roster key while many action contexts remain
+familiar. Reporting both is essential to avoid over-interpreting high team-split
+numbers as solved imitation.
+
+\section{Linking Beliefs to Actions}
+
+The original plan correlated per-battle belief accuracy with per-battle action
+match on held-out teams. Species belief was unavailable in Gen~9 OU because team
+preview reveals all opponent species. Move-belief correlation analysis is still
+informative.
+
+At scaled training, \texttt{active\_belief} reached 28.1\% move belief and 44.4\%
+OOD team action match, while turn-only BC reached 45.1\% OOD action match with no
+belief head. Higher move-belief accuracy therefore did not coincide with better
+OOD policy performance in this run.
+
+Linear probes on frozen \texttt{human\_bc\_belief} trunk embeddings tell a
+sharper story (\Cref{tab:trunk-probe}, script
+\texttt{scripts/probe\_trunk\_belief.py}). A fifteen-epoch linear probe on the
+final turn embedding reached only \textbf{10.5\%} validation move-slot accuracy,
+versus \textbf{27.7\%} for \texttt{active\_belief} move heads on the same split.
+The BC trunk therefore does \emph{not} expose hidden moves through an easy linear
+readout. Explicit belief heads and multi-task training learn representations that
+decode move labels far better than post-hoc probing.
+
+Action accuracy nevertheless remains similar across models. Belief-specific
+features appear to live in a subspace that the shared action head does not
+exploit, or multi-task training reshapes the trunk in ways that help belief
+decoding without improving the action logit channel used at inference.
+
+\begin{table}[ht]
+  \centering
+  \caption{Move-slot belief accuracy on validation battles (same split).}
+  \label{tab:trunk-probe}
+  \begin{tabular}{lc}
+    \toprule
+    Method & Val.\ move belief \\
+    \midrule
+    Linear probe on frozen BC trunk & 10.5\% \\
+    ActiveBelief move heads & 27.7\% \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\section{Implicit Belief in the Turn-Only Trunk}
+
+Turn-only BC and ActiveBelief achieved nearly identical OOD team accuracy
+(45.1\% versus 44.4\%) despite a large difference in supervised move-belief
+accuracy. Linear probes on the frozen BC trunk reached only 10.5\% move belief
+(\Cref{tab:trunk-probe}), so implicit linear encodings of unrevealed moves are
+weak. Explicit belief heads add substantial decodable structure without
+translating into better action match at current scale.
+
+The thirteen-token layout exposes opponent party state, field conditions, and
+revealed moves each turn. Causal attention over eight turns integrates switch
+patterns, damage clues, and item triggers. That design aligns with the thesis
+motivation for structured partial observability without a separate belief filter.
+
+\section{Gen~9 OU and Belief Target Selection}
+
+Team preview fundamentally changed the belief task relative to older formats
+where species were hidden. The implementation pivot to active-opponent move,
+item, ability, and tera labels was necessary for non-empty supervision.
+
+Species-centric hypotheses (H1 as originally framed) do not apply verbatim to this
+benchmark slice. Move-belief results should be read as evidence that history-
+conditioned transformers infer unrevealed moves, not that the full hidden-state
+posterior is solved.
+
+\section{Decision Tree and Attention Studies}
+
+Shallow decision trees on hand-crafted turn features and attention visualizations
+were planned to compare interpretable clues against neural errors.
+\todo{Train decision trees on damage hints, hazard state, and revealed moves;
+  report feature importances versus transformer move-belief errors.}
+
+\todo{Qualitative case studies on turns where move belief becomes correct before
+  official reveal; inspect slot attention weights.}
+
+Expected error modes remain relevant for future case studies
+\begin{itemize}
+  \item rare move sets on held-out teams,
+  \item ambiguous damage ranges before stat clues accumulate,
+  \item deliberate unconventional sets underrepresented in training,
+  \item late-game turns with truncated history relative to the eight-turn window.
+\end{itemize}
+
+\section{Takeaways for RQ1--RQ4}
+
+\textbf{RQ1.} Transformers beat GRU on move belief but not a latest-turn MLP,
+which reaches 35.5\% validation accuracy versus 28.1\% for
+\texttt{active\_belief}.
+
+\textbf{RQ2.} Belief augmentation did not improve action match over turn-only BC
+at current scale.
+
+\textbf{RQ3.} Combinatorial team shift was mitigated primarily by scaling data,
+not by matchup or belief modules.
+
+\textbf{RQ4.} Hierarchical turn structure appears sufficient for strong BC at this
+scale. Belief fusion into the policy head did not improve action match over
+parallel heads alone (19.6\% versus 20.2\% Split~A). Flat-sequence ablations
+remain open.
+
+These interpretations motivate the limitations and future directions in
+\Cref{ch:limitations} and the revised conclusions in \Cref{ch:conclusion}.

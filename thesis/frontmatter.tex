@@ -1,0 +1,29 @@
+\begin{abstract}
+Many real decision problems are partially observed, require simultaneous action
+commitment, and exhibit combinatorial structure that causes naive learners to
+memorize frequent patterns rather than infer hidden state. This thesis studies
+whether causal transformer sequence models can maintain useful beliefs over
+hidden opponent attributes from interaction history and whether explicit belief
+supervision improves offline policy learning under combinatorial distribution
+shift.
+
+We propose a hierarchical tokenization scheme with within-turn self-attention
+and cross-turn causal attention, auxiliary belief prediction heads over
+opponent party slots, and a combinatorial evaluation protocol based on held-out
+team keys and move-set combinations. Experiments use large-scale human
+competitive game trajectories reconstructed from spectator replays. The
+scientific contribution is about belief inference and generalization, not about
+game-specific heuristics or lookahead search at inference time.
+
+\textbf{Keywords:} partial observability, offline reinforcement learning,
+transformers, opponent modeling, combinatorial generalization, behavioral cloning
+\end{abstract}
+
+\chapter*{Acknowledgments}
+\addcontentsline{toc}{chapter}{Acknowledgments}
+
+I thank my thesis advisor and the research community behind Metamon, poke-env,
+and the Pokemon Showdown ecosystem for open tools and datasets that make this
+work possible.
+
+\clearpage

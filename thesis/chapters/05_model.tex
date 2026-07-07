@@ -1,0 +1,121 @@
+\chapter{Model and Training}
+\label{ch:model}
+
+\section{Overview}
+
+We extend the existing \texttt{TurnTransformer} backbone with auxiliary belief
+heads and optional belief fusion into the policy head. The design keeps
+parameter count modest (on the order of one to five million) for Master's-scale
+compute.
+
+\section{Hierarchical Encoder}
+
+\subsection{Within-Turn Self-Attention}
+
+For each turn $t$, token embeddings are summed with slot position embeddings and
+passed through a transformer encoder over the thirteen slots:
+\[
+  h_t = \mathrm{MeanPool}\bigl(\mathrm{SlotEnc}(E(x_t) + P_\mathrm{slot})\bigr).
+\]
+Mean pooling over slot outputs yields one turn embedding $h_t \in \mathbb{R}^d$.
+
+\subsection{Cross-Turn Causal Attention}
+
+Turn embeddings receive turn position embeddings and pass through a causal
+transformer encoder:
+\[
+  \tilde{h}_t = \mathrm{TurnEnc}_\mathrm{causal}(h_{1:t} + P_\mathrm{turn})_t.
+\]
+The representation at the last valid turn index is used for prediction heads.
+
+This two-level structure lets slot attention relate field state to individual
+party members within a turn while turn attention integrates evidence across
+time without peeking at future observations.
+
+\section{Policy Head}
+
+The policy head is a linear classifier over the final turn embedding:
+\[
+  \pi(a \mid C_t) = \mathrm{softmax}(W_\pi \tilde{h}_{t^*}),
+\]
+where $t^*$ is the index of the most recent valid turn. Training minimizes
+cross-entropy against the human action (behavioral cloning).
+
+\section{Belief Heads}
+
+For each belief target type $k$ and opponent slot $s$, a small MLP maps
+$\tilde{h}_{t^*}$ to logits over the target vocabulary:
+\[
+  \hat{z}_{t,s}^{(k)} = \mathrm{softmax}\bigl(f_s^{(k)}(\tilde{h}_{t^*})\bigr).
+\]
+Species prediction uses six slot-specific heads sharing the same trunk
+representation. Masked slots exclude terms from the belief loss.
+
+\section{Belief Fusion Variant}
+
+In an ablation we concatenate belief head softmax outputs to the policy input:
+\[
+  \pi(a \mid C_t) = \mathrm{softmax}\bigl(W_\pi [\tilde{h}_{t^*}; \hat{z}_t]\bigr).
+\]
+This tests whether explicit belief features help action selection beyond shared
+representation learning in the trunk.
+
+\section{Training Procedure}
+
+\subsection{Stage A: Belief-Augmented Behavioral Cloning}
+
+The multi-task loss is
+\begin{equation}
+  \mathcal{L} = \mathcal{L}_\mathrm{action}
+    + \lambda_\mathrm{bel} \sum_k \mathcal{L}_\mathrm{bel}^{(k)},
+  \label{eq:multitask}
+\end{equation}
+where $\mathcal{L}_\mathrm{action}$ is action cross-entropy and each
+$\mathcal{L}_\mathrm{bel}^{(k)}$ is masked cross-entropy over opponent slots.
+The weight $\lambda_\mathrm{bel}$ is tuned on validation data.
+
+\subsection{Stage B: Conservative Offline RL Fine-Tuning}
+
+We initialize from Stage A and optionally fine-tune with CQL or AMAGO on the
+same offline trajectories. No search or simulator rollouts run at inference.
+
+\subsection{Stage C: Evaluation}
+
+All benchmark battles use frozen checkpoints. No online weight updates occur
+during evaluation.
+
+\section{Baselines}
+
+Belief baselines include gradient-boosted trees and logistic regression on
+hand-crafted features, MLP on the latest turn only, GRU over turn embeddings,
+TurnTransformer without belief loss, and a flat causal transformer over
+$13 \times T$ tokens.
+
+Policy baselines include BC with MLP, BC with GRU, BC TurnTransformer, belief-
+augmented TurnTransformer, and belief-augmented models with offline RL
+fine-tuning.
+
+\section{Architecture Summary}
+
+\begin{table}[ht]
+  \centering
+  \caption{Default hyperparameters for the belief transformer.}
+  \label{tab:hyperparams}
+  \begin{tabular}{ll}
+    \toprule
+    Hyperparameter & Default \\
+    \midrule
+    Model dimension $d$ & 128 \\
+    Attention heads & 4 \\
+    Slot encoder layers & 1 \\
+    Turn encoder layers & 2 \\
+    Context turns $N$ & 8 \\
+    Dropout & 0.1 \\
+    Optimizer & AdamW, lr $3\times10^{-4}$ \\
+    $\lambda_\mathrm{bel}$ & tuned on validation \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+The \texttt{BeliefTransformer} class implements belief heads and optional fusion.
+Training is invoked via \texttt{scripts/train\_belief\_bc.py}.
