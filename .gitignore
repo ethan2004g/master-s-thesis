@@ -16,7 +16,7 @@ checkpoints/
 pokemon-thesis-tools/
 .venv-metamon/
 
-data/
+/data/
 
 # LaTeX build artifacts (keep main.pdf)
 thesis/*.aux
