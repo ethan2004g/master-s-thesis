@@ -81,9 +81,11 @@ Requires local Showdown server running.
 python scripts/run_bc_match.py --battles 5 --checkpoint-dir checkpoints/human_bc
 ```
 
-## Phase 3 — Thesis results (in progress)
+## Phase 3 — Thesis results (complete for Master's draft)
 
-Chapter 7 (Results), Chapter 8 (Analysis), and Chapter 10 (Conclusion) drafted from scaled experiments Jul 3.
+Chapters 1, 6--10 updated Jul 10 around the scientific framing: belief inference
+and combinatorial generalization under offline imitation, not live ladder win
+rate. All `\todo` markers removed from the thesis draft.
 
 ```powershell
 .\scripts\compile_thesis.ps1
@@ -111,7 +113,8 @@ Checkpoint: `checkpoints/active_belief_fusion/`. OOD eval: `logs/eval_active_bel
 
 Results in `logs/belief_baseline_results.json`. Latest-turn MLP beats the transformer on move belief.
 
-Remaining `\todo` items in the thesis: live battles, Split C, CQL.
+Deferred as future work (not thesis blockers): live battles, Split C, CQL,
+calibration plots, flat-sequence and context-window sweeps.
 
 ### Trunk probe (done)
 

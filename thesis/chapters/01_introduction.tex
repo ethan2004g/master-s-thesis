@@ -37,7 +37,7 @@ model that
 \end{enumerate}
 
 Formally, each turn produces an observation $o_t$ derived from public state.
-Hidden variables $z_t$ include unrevealed species, moves, items, abilities, and
+Hidden variables $z_t$ include unrevealed moves, items, abilities, and
 other private attributes. Actions $a_t$ are chosen under simultaneous-move
 constraints. The model receives offline trajectories
 $\{(o_{1:T}, a_{1:T}, z_{1:T})\}$ reconstructed from full logs where $z$ is
@@ -47,6 +47,19 @@ The central thesis question is whether explicit belief supervision and
 transformer-based history modeling improve both belief accuracy and policy
 performance under combinatorial distribution shift.
 
+\section{Scope and Non-Goals}
+
+This thesis measures offline imitation and belief metrics. It does
+\emph{not} claim that the resulting agent is competitive against human ladder
+players. Live win rate is a separate play-strength question. Offline action
+match of roughly twenty percent on hundreds of classes is far above chance and
+still leaves most turns incorrect, so weak live performance against skilled
+humans is expected and does not invalidate the scientific measurements below.
+
+Pok\'emon is used only as a benchmark. The contribution is an empirical study of
+belief inference and combinatorial generalization under offline learning, not a
+product bot or a search-based competitive agent.
+
 \section{Research Questions}
 
 \begin{description}
@@ -54,10 +67,10 @@ performance under combinatorial distribution shift.
     attributes more accurately than classical and neural baselines?
   \item[RQ2 (Belief usefulness)] Does improved belief accuracy translate into
     better action selection under behavioral cloning and offline policy metrics?
-  \item[RQ3 (Combinatorial generalization)] Under held-out team and set splits,
+  \item[RQ3 (Combinatorial generalization)] Under held-out team splits,
     do belief-augmented policies degrade more gracefully than action-only models?
   \item[RQ4 (Architecture)] How much gain comes from within-turn structure,
-    cross-turn causal attention, and auxiliary belief heads versus flat sequence
+    cross-turn causal attention, and auxiliary belief heads versus simpler
     baselines?
 \end{description}
 
@@ -67,21 +80,26 @@ This thesis makes four contributions.
 \begin{enumerate}
   \item A structured tokenization and belief supervision framework for
     partially observed simultaneous-action games.
-  \item Empirical evidence on whether transformer history models learn
-    calibratable beliefs over hidden opponent attributes from offline human play.
-  \item A combinatorial generalization benchmark protocol with team-key and
-    set-combination held-out splits tied to belief and policy metrics.
+  \item Empirical evidence that transformers and classical baselines learn
+    nontrivial beliefs over hidden opponent moves from offline human play, and
+    that a latest-turn MLP can outperform a history transformer on that target.
+  \item A combinatorial generalization protocol with held-out opponent team keys,
+    showing that team-level OOD gaps shrink primarily with data scale rather than
+    with explicit matchup or belief modules.
   \item An open-source implementation built on Metamon, poke-env, and Gymnasium
-    compatible tooling.
+    compatible tooling, including export, training, probing, and OOD evaluation
+    scripts.
 \end{enumerate}
 
 \section{Evaluation Domain}
 
 We evaluate on competitive Pok\'emon battles reconstructed from human spectator
 replays via the Metamon dataset \citep{grigsby2023metamon,grigsby2025metamon}.
-Pok\'emon is used only as a benchmark. It combines partial observability,
-simultaneous move commitment, and combinatorial team structure in one domain
-with large-scale offline data. The methods apply to any domain with similar
+Pok\'emon combines partial observability, simultaneous move commitment, and
+combinatorial team structure in one domain with large-scale offline data. Gen~9
+OU team preview reveals all opponent species at battle start, so species belief
+is empty by design and active-opponent move, item, ability, and tera labels are
+the primary belief targets. The methods apply to any domain with similar
 structure.
 
 \section{Thesis Organization}

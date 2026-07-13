@@ -18,6 +18,11 @@ Gen~9 OU team preview reveals all opponent species at battle start, so species
 belief supervision is empty by design. Active-opponent move, item, ability, and
 tera type are the primary belief targets.
 
+These tables measure offline imitation and belief accuracy. They do not report
+live win rate against human players. Weak live play against skilled humans is
+compatible with the offline numbers below and is outside the primary claim of
+this thesis.
+
 \section{Phase 1 Baseline (Full Subset)}
 
 The turn-only \texttt{TurnTransformer} was trained on
@@ -62,9 +67,13 @@ heads.
 
 \subsection{Live Evaluation}
 
-Live win-rate experiments on \texttt{poke-env} against \texttt{RandomPlayer} and
-frozen BC opponents are planned but not yet included in this draft.
-\todo{Insert live battle win rates from \texttt{scripts/run\_bc\_match.py}.}
+Live win-rate experiments on \texttt{poke-env} were not run for this draft.
+Offline action match of roughly twenty percent implies that most turns still
+disagree with the human demonstration. Against a skilled Gen~9 OU player, the
+agent would be expected to lose almost every game. That outcome would measure
+play strength, not whether belief learning or combinatorial evaluation succeeded.
+Live evaluation against \texttt{RandomPlayer}, frozen BC bots, and optionally
+ladder humans remains future work for a play-strength appendix.
 
 \section{Belief Inference (RQ1)}
 
@@ -101,10 +110,12 @@ diminishing returns for this target at current scale.
 \subsection{Species and Set-Combination Beliefs}
 
 Species belief labels are unavailable in Gen~9 OU because team preview exposes
-all six opponent species before turn one. Split~C (held-out item, ability, and
-move-set tuples) and calibration metrics (ECE, Brier score) are deferred to a
-later revision.
-\todo{Report item, ability, and tera belief accuracy and Split~C results.}
+all six opponent species before turn one. Item, ability, and tera heads were
+trained jointly with move heads, but this draft reports move-slot accuracy as
+the primary RQ1 metric because it has the densest supervision (59\,254 labeled
+slots). Split~C (held-out item, ability, and move-set tuples) and calibration
+metrics (ECE, Brier score) are deferred. The scientific claim for RQ1 is
+therefore limited to active-opponent move inference under the reported baselines.
 
 \section{Combinatorial Generalization (RQ3)}
 
@@ -180,14 +191,17 @@ heads without fusion. OOD team accuracy was 43.3\% (fusion) versus 44.4\%
 (without fusion). Feeding explicit belief probabilities into the action head did
 not improve imitation at this scale.
 
-Flat $13T$ token transformers and context-window sweeps remain future work.
-\todo{Report flat-sequence and context-window ablations.}
+Flat $13T$ token transformers and context-window sweeps were not run. The
+executed ablations already show that adding matchup and belief modules on top of
+the hierarchical trunk does not improve policy metrics, while classical
+baselines clarify what history modeling contributes for move belief.
 
 \section{Stage B Offline RL}
 
 Conservative offline RL fine-tuning (CQL or AMAGO) initialized from belief-
-augmented BC has not been run.
-\todo{Insert Stage~B offline RL results if pursued.}
+augmented BC was not run. Stage~B is optional for thesis completion under the
+minimum viable bar in \Cref{ch:experiments}. Strong Stage~A belief and BC
+results, including negative transfer findings, suffice for the claims made here.
 
 \section{Summary}
 
@@ -212,10 +226,11 @@ OOD action match is Split~B OOD team accuracy.
 
 \subsection{Relation to Hypotheses}
 
-\textbf{H1 (belief inference).} Mixed. The transformer learns non-trivial move
-beliefs and beats the GRU baseline (28.1\% versus 17.2\%), but a latest-turn MLP
-reaches 35.5\% on the same split. History-conditioned attention is not required
-for strong move prediction when current-turn tokens already expose most clues.
+\textbf{H1 (belief inference).} Mixed support. The transformer learns non-trivial
+move beliefs and beats the GRU baseline (28.1\% versus 17.2\%), but a latest-turn
+MLP reaches 35.5\% on the same split. History-conditioned attention is not
+required for strong move prediction when current-turn tokens already expose most
+clues.
 
 \textbf{H2 (belief usefulness).} Not supported at current scale. Auxiliary
 belief loss did not improve action match over turn-only BC on either split.
@@ -224,7 +239,7 @@ belief loss did not improve action match over turn-only BC on either split.
 team gap for all models. Belief and matchup modules did not produce a smaller
 gap than the baseline.
 
-\textbf{H4 (offline RL).} Not yet tested.
+\textbf{H4 (offline RL).} Not tested. Left as future work.
 
 Reproducibility artifacts are stored under \texttt{checkpoints/} and
 \texttt{logs/ood\_comparison.json}. The one-command replication script is

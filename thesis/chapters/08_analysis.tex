@@ -15,6 +15,21 @@ scaled experiments on Metamon Gen~9 OU human replays
     belief-augmented variants on action prediction.
 \end{enumerate}
 
+\section{What the Thesis Shows Versus What It Does Not}
+
+The offline metrics support a scientific claim about learning, not a product
+claim about play. Nontrivial move belief and far-above-chance action match show
+that the representation and training pipeline recover structure from human logs.
+They do not imply that the agent would win live battles against real players.
+A model that matches the human action on roughly one turn in five still errs on
+most turns, and a single bad switch often decides a game. Interpreting the
+thesis as a failed competitive bot would misread the research questions.
+
+The negative result on belief-to-policy transfer is equally important. Explicit
+belief heads improve decodable move prediction without improving action match.
+That finding warns against assuming that auxiliary opponent modeling will
+automatically improve imitation policies.
+
 \section{Scaling Belief Versus Scaling Policy}
 
 The \texttt{ActiveBeliefTransformer} increased validation move-slot accuracy from
@@ -36,8 +51,9 @@ supervised targets without changing the trunk enough to improve actions.
 \textbf{Task interference.} Multi-task training divides gradient signal among
 move, item, ability, and tera heads. If $\lambda_\mathrm{bel}$ is not carefully
 tuned, belief terms may slow action learning without improving generalization.
-Future work should sweep $\lambda_\mathrm{bel}$ and try belief fusion into the
-policy input (\Cref{ch:model}) rather than parallel heads only.
+Belief fusion into the policy input was tested and did not help
+(\Cref{ch:results}), so the remaining open knob is a careful $\lambda_\mathrm{bel}$
+sweep rather than fusion alone.
 
 \section{Why the Team Generalization Gap Collapsed}
 
@@ -126,26 +142,27 @@ item, ability, and tera labels was necessary for non-empty supervision.
 
 Species-centric hypotheses (H1 as originally framed) do not apply verbatim to this
 benchmark slice. Move-belief results should be read as evidence that history-
-conditioned transformers infer unrevealed moves, not that the full hidden-state
-posterior is solved.
+conditioned transformers and classical baselines infer unrevealed moves, not that
+the full hidden-state posterior is solved.
 
-\section{Decision Tree and Attention Studies}
+\section{Interpretability Directions Not Executed}
 
 Shallow decision trees on hand-crafted turn features and attention visualizations
-were planned to compare interpretable clues against neural errors.
-\todo{Train decision trees on damage hints, hazard state, and revealed moves;
-  report feature importances versus transformer move-belief errors.}
-
-\todo{Qualitative case studies on turns where move belief becomes correct before
-  official reveal; inspect slot attention weights.}
-
-Expected error modes remain relevant for future case studies
+were planned to compare interpretable clues against neural errors. Those studies
+were not completed for this draft. Expected error modes remain relevant for
+future case studies
 \begin{itemize}
   \item rare move sets on held-out teams,
   \item ambiguous damage ranges before stat clues accumulate,
   \item deliberate unconventional sets underrepresented in training,
   \item late-game turns with truncated history relative to the eight-turn window.
 \end{itemize}
+
+The quantitative baselines already provide the main interpretability result for
+RQ1. A latest-turn MLP beating the transformer suggests that most move-belief
+signal lives in the current observation rather than in long-horizon attention
+patterns. Attention case studies would refine that story but are not required to
+support the claim.
 
 \section{Takeaways for RQ1--RQ4}
 
@@ -154,15 +171,16 @@ which reaches 35.5\% validation accuracy versus 28.1\% for
 \texttt{active\_belief}.
 
 \textbf{RQ2.} Belief augmentation did not improve action match over turn-only BC
-at current scale.
+at current scale. Offline imitation success does not imply live competitiveness
+against humans.
 
 \textbf{RQ3.} Combinatorial team shift was mitigated primarily by scaling data,
 not by matchup or belief modules.
 
 \textbf{RQ4.} Hierarchical turn structure appears sufficient for strong BC at this
 scale. Belief fusion into the policy head did not improve action match over
-parallel heads alone (19.6\% versus 20.2\% Split~A). Flat-sequence ablations
-remain open.
+parallel heads alone (19.6\% versus 20.2\% Split~A). Flat-sequence and
+context-window sweeps remain open.
 
 These interpretations motivate the limitations and future directions in
 \Cref{ch:limitations} and the revised conclusions in \Cref{ch:conclusion}.

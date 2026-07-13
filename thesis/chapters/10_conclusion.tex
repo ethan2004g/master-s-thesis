@@ -6,7 +6,9 @@ opponent state from interaction history and act without lookahead search. This
 thesis studied whether a causal transformer with structured thirteen-token turns,
 auxiliary belief supervision, and combinatorial held-out evaluation improves
 offline imitation learning in that setting. Competitive Pok\'emon Gen~9 OU human
-replays via Metamon served as the benchmark.
+replays via Metamon served as the benchmark. The scientific contribution is
+belief inference and combinatorial generalization under offline learning, not
+competitive ladder play.
 
 \section{Contributions}
 
@@ -30,7 +32,9 @@ training, and OOD evaluation.
 \textbf{Empirical findings on human data.} Phase~1 BC reached 18.4\% action match
 on $\approx$255\,000 turns (988 action classes). Phase~2 on 2\,000 battles showed
 20.4\% random-holdout action match for turn-only BC, 28.1\% move-belief accuracy
-for the belief-augmented model, and near-zero OOD team gap after scaling.
+for the belief-augmented model, 35.5\% for a latest-turn MLP baseline, and
+near-zero OOD team gap after scaling. Explicit belief and matchup modules did not
+improve policy metrics over turn-only cloning.
 
 \section{Summary of Findings}
 
@@ -50,25 +54,32 @@ Species belief, as originally envisioned for partially hidden rosters, does not
 apply to this format. The empirical belief results concern active-opponent move
 sets and related hidden attributes.
 
+Offline imitation success should not be confused with live competitiveness.
+Matching human actions on roughly one turn in five leaves most decisions wrong.
+Against skilled human players the agent would be expected to lose almost every
+game. That expectation does not erase the offline scientific findings above.
+
 \section{Hypotheses Revisited}
 
-\textbf{H1} received partial support: the transformer learns history-conditioned
-move beliefs well above pilot accuracy, though classical baselines are not yet
-reported.
+\textbf{H1} received mixed support. The transformer learns history-conditioned
+move beliefs well above pilot accuracy and beats a GRU baseline, but a
+latest-turn MLP reaches higher move-belief accuracy (35.5\% versus 28.1\%).
 
-\textbf{H2} was not supported at current scale: auxiliary belief loss did not
-improve action match over BC-only training.
+\textbf{H2} was not supported at current scale. Auxiliary belief loss did not
+improve action match over BC-only training, and belief fusion into the policy
+head also failed to help.
 
-\textbf{H3} was mixed: scaling reduced OOD degradation for all models; belief
+\textbf{H3} was mixed. Scaling reduced OOD degradation for all models. Belief
 and matchup modules did not achieve a smaller gap than the baseline.
 
 \textbf{H4} (offline RL fine-tuning) remains future work.
 
 The minimum viable bar in \Cref{ch:experiments} asked for at least two of four
-criteria. This draft meets the bar on (i)~demonstrating non-trivial belief
-learning on hidden moves and (iv)~evidence that structured turn history
-contributes through strong BC relative to chance, but not on belief improving OOD
-policy or offline RL gains.
+criteria. This thesis meets the bar on (i)~demonstrating nontrivial belief
+learning on hidden moves relative to chance and neural baselines and
+(iv)~evidence that structured turn history and data scale contribute measurable
+signal, but not on belief improving OOD policy or offline RL gains. The negative
+result on belief-to-policy transfer is reported as a finding.
 
 \section{Broader Impact}
 
@@ -76,24 +87,26 @@ The scientific contribution is not competitive Pok\'emon play. It is an empirica
 study of transformer belief inference and combinatorial generalization under
 offline imitation. The negative result on belief-to-policy transfer is informative
 for domains where auxiliary prediction tasks are tempting but trunk capacity may
-already absorb the relevant signal. Practitioners should validate whether explicit
-belief heads help policy metrics on their splits before adding multi-task
-complexity.
+already absorb the relevant signal for action matching, or where multi-task
+training fails to route belief features into the policy head. Practitioners
+should validate whether explicit belief heads help policy metrics on their splits
+before adding multi-task complexity.
 
 \section{Future Work}
 
 Priority directions follow from \Cref{ch:limitations,ch:analysis}.
 \begin{itemize}
-  \item Belief fusion into the policy head and sweeps over $\lambda_\mathrm{bel}$.
-  \item Linear probes on BC-only trunk embeddings to test implicit belief.
-  \item Held-out set-combination splits (Split~C) for item, ability, and move
-    tuples beyond species keys.
-  \item Live win-rate evaluation on \texttt{poke-env} and classical MLP/GRU
-    baselines for RQ1.
+  \item Live win-rate evaluation on \texttt{poke-env} as a play-strength appendix,
+    not as a replacement for the offline claims.
+  \item Held-out set-combination splits (Split~C) and per-attribute belief tables
+    for item, ability, and tera.
+  \item Sweeps over $\lambda_\mathrm{bel}$ and larger models to re-test
+    belief-to-policy transfer.
   \item Conservative offline RL (CQL or AMAGO) initialized from scaled BC
     checkpoints.
-  \item Larger context windows, model width, and corpus scale toward the full
-    Metamon subset used in Phase~1.
+  \item Context-window and flat-sequence ablations, plus attention or
+    decision-tree case studies on move-belief errors.
+  \item Larger corpus scale toward the full Metamon subset used in Phase~1.
   \item Release of combinatorial split manifests as a standalone benchmark artifact.
 \end{itemize}
 

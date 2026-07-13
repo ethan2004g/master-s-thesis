@@ -9,11 +9,21 @@ shift.
 
 We propose a hierarchical tokenization scheme with within-turn self-attention
 and cross-turn causal attention, auxiliary belief prediction heads over
-opponent party slots, and a combinatorial evaluation protocol based on held-out
-team keys and move-set combinations. Experiments use large-scale human
-competitive game trajectories reconstructed from spectator replays. The
-scientific contribution is about belief inference and generalization, not about
-game-specific heuristics or lookahead search at inference time.
+active-opponent attributes, and a combinatorial evaluation protocol based on
+held-out opponent team keys. Experiments use Metamon Gen~9 OU human replays.
+Competitive Pok\'emon is the benchmark domain only. The scientific target is
+belief inference and generalization under offline imitation, not ladder win
+rate or search-based play strength.
+
+On a 2\,000-battle belief-enriched corpus, turn-only behavioral cloning reaches
+20.4\% top-1 action match on random battle holdout and 45.1\% on held-out team
+keys. Explicit belief heads reach 28.1\% move-slot accuracy and beat a GRU
+baseline, while a latest-turn MLP reaches 35.5\%. Auxiliary belief and matchup
+modules do not improve action match or team-level generalization over turn-only
+cloning. The opponent-team generalization gap collapses with data scale for
+every architecture. These results support nontrivial offline belief learning
+and show that belief-to-policy transfer is not automatic at Master's-scale
+models and data.
 
 \textbf{Keywords:} partial observability, offline reinforcement learning,
 transformers, opponent modeling, combinatorial generalization, behavioral cloning

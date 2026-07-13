@@ -6,7 +6,8 @@
 Competitive Pok\'emon Singles (CPS) is a turn-based strategy game with
 simultaneous move selection each turn. Players choose teams of six Pok\'emon
 with moves, items, abilities, and in Generation 9 a terastallization type. At
-battle start much of the opponent roster is hidden. Species, sets, and intent
+battle start in Gen~9 OU, team preview reveals all opponent species.
+Unrevealed moves, items, abilities, and terastallization type remain hidden and
 must be inferred from damage ranges, switch patterns, item triggers, and move
 reveals.
 
@@ -42,14 +43,16 @@ on format rules and logged move names.
 
 \section{Data Pipeline Status}
 
-The implementation roadmap proceeds in phases.
+The implementation roadmap for this draft is complete for Stage~A offline
+experiments.
 \begin{enumerate}
   \item Local Showdown server and baseline logging \textbf{(complete)}.
   \item 13-token turn encoder and vocabulary \textbf{(complete)}.
   \item TurnTransformer behavioral cloning \textbf{(complete)}.
-  \item Metamon download and bridge to token format \textbf{(in progress)}.
-  \item Belief label extraction and multi-task training \textbf{(in progress)}.
-  \item Combinatorial split tooling and evaluation harness \textbf{(planned)}.
+  \item Metamon bridge and belief-enriched export \textbf{(complete)}.
+  \item Multi-task belief training and matchup ablations \textbf{(complete)}.
+  \item Split~A / Split~B combinatorial evaluation harness \textbf{(complete)}.
+  \item Live poke-env win-rate appendix and Split~C \textbf{(deferred)}.
 \end{enumerate}
 
 \Cref{app:implementation} lists repository paths for each component.

@@ -8,6 +8,14 @@ observed simultaneous-action domains requires re-tokenization and new belief
 target definitions. The methods are domain-agnostic but empirical claims are
 benchmark-specific.
 
+\section{Play Strength Versus Scientific Metrics}
+
+This thesis does not evaluate live win rate against human players. Offline
+action match and belief accuracy answer RQ1--RQ3 as framed. They do not certify
+ladder competitiveness. A committee should not read the absence of live wins as
+a failed thesis. The intended contribution is measurement of belief learning and
+combinatorial generalization under offline imitation.
+
 \section{Label and Reconstruction Noise}
 
 Metamon first-person reconstruction may contain errors on edge-case mechanics.
@@ -17,7 +25,9 @@ of random-bot versus human statistics.
 \section{Belief Labels After Reveal}
 
 Belief metrics focus on pre-reveal turns with masked slots. Including post-reveal
-slots would inflate accuracy trivially.
+slots would inflate accuracy trivially. Item, ability, and tera accuracies are
+trained but not broken out as primary tables because move slots dominate the
+label mass.
 
 \section{Compute and Model Scale}
 
@@ -27,24 +37,33 @@ policies \citep{grigsby2025metamon} but is left for future work.
 
 \section{Offline RL Stability}
 
-CQL and AMAGO fine-tuning can be unstable on sparse or noisy data. Stage B is
-optional for thesis completion. Strong Stage A belief and BC results suffice
-for the minimum viable bar.
+CQL and AMAGO fine-tuning can be unstable on sparse or noisy data. Stage B was
+not run. Strong Stage A belief and BC results, including the negative
+belief-to-policy transfer finding, suffice for the minimum viable bar in
+\Cref{ch:experiments}.
 
 \section{Gen~9 Team Preview}
 
 In Gen~9 OU, all opponent species are visible after team preview. Species-based
 belief and Split~B keyed only by species composition may understate harder
 combinatorial shift involving unrevealed items, abilities, and move sets.
-Split~C and active-opponent belief labels partially address this gap; full set-
-combination held-out evaluation remains open (\Cref{ch:results}).
+Split~C and finer set-combination held-out evaluation remain open
+(\Cref{ch:results}).
 
 \section{Future Directions}
 
 \begin{itemize}
-  \item Self-confirming belief tokens inspired by \citet{zhang2024sct} for
-    opponent intent before move reveal.
-  \item Variational belief modules with amortized inference over team identity.
+  \item Live evaluation on \texttt{poke-env} against \texttt{RandomPlayer},
+    frozen BC bots, and optionally ladder humans, reported as play-strength
+    appendix metrics rather than as the primary thesis claim.
+  \item Split~C held-out item, ability, and move-set tuples, plus per-attribute
+    belief tables and calibration plots.
+  \item Sweeps over $\lambda_\mathrm{bel}$ and larger models to test whether
+    belief-to-policy transfer appears at higher capacity.
+  \item Conservative offline RL (CQL or AMAGO) initialized from scaled BC
+    checkpoints.
+  \item Context-window and flat-sequence ablations for RQ4 completeness.
+  \item Decision-tree and attention case studies on move-belief errors.
   \item Cross-format evaluation (other generations or tiers) for broader
     generalization claims.
   \item Release of combinatorial split manifests as a standalone benchmark

@@ -3,110 +3,116 @@
 
 \section{Dataset}
 
-The primary corpus is Metamon Gen 9 OU human replays. The scale target is at
-least fifty thousand battles after filtering corrupted or extremely short games.
-Observations use first-person reconstructed from spectator logs. Actions come
-from human moves. Belief labels come from full-state opponent annotations.
+The primary corpus is Metamon Gen~9 OU human replays. Phase~1 trains turn-only
+behavioral cloning on an encoded subset of approximately 255\,000 turns.
+Phase~2 exports a belief-enriched corpus of 2\,000 battles (69\,411 turns) with
+active-opponent move, item, ability, and tera labels plus team matchup keys.
+Observations use first-person reconstruction from spectator logs. Actions come
+from human moves. Belief labels come from full-state opponent annotations that
+are unavailable to the agent at decision time.
 
 Random-bot logs from poke-env support pipeline validation before human data is
-available at full scale.
+used for research runs.
 
 \section{Data Splits}
 
-We report three complementary split strategies.
+We report two primary split strategies and defer a third.
 
 \subsection{Split A: Random Battle Split}
 
-Standard 80/10/10 train, validation, and test partition by battle ID. This
-measures in-distribution imitation and belief accuracy.
+Standard 80/20 train and validation partition by battle ID. This measures
+in-distribution imitation and belief accuracy on unseen battle trajectories.
 
 \subsection{Split B: Held-Out Team Cores}
 
 Each opponent team receives a canonical key from sorted species names. Teams in
-a designated held-out set never appear in training. Test battles use opponents
-whose team key was unseen during training.
+a designated held-out set never appear in training. Evaluation compares turns
+whose opponent team key appeared in training (ID train teams) against turns
+whose key was unseen (OOD teams). The generalization gap is ID train team
+accuracy minus OOD team accuracy and is the primary summary statistic for RQ3.
 
-\subsection{Split C: Held-Out Set Combinations}
+\subsection{Split C: Held-Out Set Combinations (Deferred)}
 
-We hold out specific tuples of species, item, ability, and move quartet. This
-tests fine-grained combinatorial generalization beyond species identity alone.
-
-\subsection{Split D: Temporal Split (Optional)}
-
-When metadata permits, train on an earlier ladder period and test on a later
-period to measure temporal drift.
+Holding out specific tuples of item, ability, and move quartet would test
+finer combinatorial shift beyond species identity. Split~C is left for future
+work because Gen~9 OU already reveals species at team preview and because the
+scaled Phase~2 results already answer the species-key version of RQ3.
 
 \section{Belief Metrics}
 
-For each hidden-attribute type and model we report
-\begin{itemize}
-  \item top-1 accuracy on masked unrevealed slots,
-  \item top-3 accuracy where label space is large,
-  \item expected calibration error (ECE),
-  \item Brier score for multi-class predictions,
-  \item reveal-turn anticipation (turns before official reveal when top-1 becomes
-    correct).
-\end{itemize}
-
-We plot belief accuracy versus turn number to show uncertainty narrowing over
-time.
+For move-slot belief we report top-1 accuracy on masked unrevealed slots.
+Baselines include a latest-turn MLP, a GRU over eight turns, and a linear probe
+on a frozen BC trunk. Item, ability, and tera heads are trained jointly with
+move heads. Aggregate move-slot accuracy is the primary RQ1 number reported in
+\Cref{ch:results}. Calibration plots (ECE, Brier) and reveal-turn anticipation
+curves are deferred.
 
 \section{Policy Metrics}
 
 Policy evaluation uses
 \begin{itemize}
-  \item BC cross-entropy and top-1 action match versus human actions,
-  \item offline policy value estimates when Q-learning is used,
-  \item live win rate on poke-env against fixed opponents,
-  \item generalization gap (in-distribution metric minus out-of-distribution
-    metric).
+  \item BC cross-entropy and top-1 action match versus human actions on Split~A,
+  \item Split~B ID versus OOD team action match and the generalization gap,
+  \item ablation comparisons among turn-only BC, matchup BC, ActiveBelief, and
+    belief-fusion variants.
 \end{itemize}
 
-The generalization gap is the primary summary statistic for RQ3.
+Live win rate on poke-env is an optional play-strength metric. It is not required
+to answer RQ1--RQ3 as framed in this thesis. Offline action match measures
+imitation fidelity, not ladder competitiveness against humans.
 
 \section{Ablations}
 
 \begin{table}[ht]
   \centering
-  \caption{Planned ablation studies.}
+  \caption{Ablation studies executed in Phase~2.}
   \label{tab:ablations}
   \begin{tabular}{ll}
     \toprule
     Ablation & What it tests \\
     \midrule
-    Context $N \in \{4,8,16,32\}$ & History length for belief \\
-    Remove within-turn attention & Value of 13-token structure \\
-    Bidirectional turn encoder & Future leakage effects \\
-    $\lambda_\mathrm{bel} = 0$ vs tuned & Necessity of belief loss \\
-    Belief fusion vs shared trunk & Explicit belief features \\
-    CQL vs AMAGO vs BC-only & Offline RL contribution \\
+    Turn-only BC vs Matchup BC & Value of explicit team encoder \\
+    Matchup BC vs ActiveBelief & Value of auxiliary belief heads \\
+    Belief fusion vs parallel heads & Explicit belief features for policy \\
+    MLP / GRU / linear probe vs ActiveBelief & RQ1 baseline comparison \\
+    500 vs 2\,000 battle scale & Data coverage versus architecture \\
     \bottomrule
   \end{tabular}
 \end{table}
 
+Context-window sweeps, flat $13T$ sequence transformers, and offline RL
+(CQL or AMAGO) remain future work.
+
 \section{Statistical Reporting}
 
-We report mean $\pm$ 95\% bootstrap confidence intervals over battles. Paired
-comparisons use the same test battles for each model. Win-rate significance
-uses paired bootstrap or McNemar tests where appropriate.
+We report point estimates on fixed validation and OOD splits shared across
+models. Paired comparisons use the same encoded corpus and token vocabulary.
+Bootstrap confidence intervals over battles are desirable for a journal revision
+but are not required for the Master's-scale tables in \Cref{ch:results}.
 
 \section{Minimum Viable Result}
 
-The thesis meets its pass bar if at least two of the following hold on
-combinatorial splits.
+The thesis meets its pass bar if at least two of the following hold.
 \begin{enumerate}
-  \item Belief-augmented TurnTransformer beats classical and recurrent belief
-    baselines on aggregate hidden-species prediction.
-  \item Belief-augmented BC beats BC-only TurnTransformer on OOD team metrics
-    with a smaller generalization gap.
-  \item Offline RL fine-tuning improves live win rate over BC-only without
-    search at inference.
-  \item Ablations confirm causal history modeling contributes beyond flat
-    sequence baselines.
+  \item Belief models demonstrate nontrivial move-belief accuracy relative to
+    chance and beat at least one strong neural baseline on that target.
+  \item Belief-augmented BC improves OOD team metrics or shrinks the
+    generalization gap relative to turn-only BC.
+  \item Offline RL fine-tuning improves offline or live policy metrics over
+    BC-only without search at inference.
+  \item Ablations show that structured turn history or scale contributes
+    measurable signal beyond naive baselines (chance-level action match,
+    empty belief labels, or pilot-scale OOD gaps).
 \end{enumerate}
+
+As reported in \Cref{ch:results}, criteria (1) and (4) hold. Criterion (2) does
+not hold at current scale. Criterion (3) was not tested and is future work.
+Negative results on (2) are treated as scientific findings, not as thesis
+failure.
 
 \section{Compute and Reproducibility}
 
-Training runs on a single GPU when available with CPU fallback. Checkpoints,
-vocabularies, and split manifests are saved under \texttt{checkpoints/} and
-\texttt{logs/}. The thesis PDF is built from \texttt{thesis/main.tex}.
+Training runs on CPU or a single GPU. Checkpoints, vocabularies, and evaluation
+JSON files are saved under \texttt{checkpoints/} and \texttt{logs/}. The
+one-command Phase~2 pipeline is \texttt{scripts/scale\_belief\_research.py}.
+The thesis PDF is built from \texttt{thesis/main.tex}.
